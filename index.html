@@ -89,6 +89,15 @@
     .cute-float {
       animation: floatCute 2.8s ease-in-out infinite;
     }
+
+    /* Efek Getar Saat Suara Berbunyi */
+    @keyframes speakingPulse {
+      0%, 100% { transform: scale(1); }
+      50% { transform: scale(1.15) rotate(-5deg); }
+    }
+    .speaking-active {
+      animation: speakingPulse 0.35s ease-in-out infinite !important;
+    }
   </style>
 </head>
 <body class="bg-slate-100 text-slate-900 antialiased min-h-screen flex flex-col">
@@ -363,17 +372,20 @@
 
   </main>
 
-  <!-- WIDGET PENGHITUNG KUNJUNGAN LUCU DI UJUNG KANAN BAWAH (OTOMATIS HILANG SAAT PRINT) -->
+  <!-- ELEMEN AUDIO OPSIONAL (Jika kamu upload file jokowi.mp3 di folder yang sama di GitHub) -->
+  <audio id="jokowiCustomAudio" src="jokowi.mp3" preload="auto"></audio>
+
+  <!-- WIDGET PENGHITUNG KUNJUNGAN LUCU + SUARA JOKOWI DI UJUNG KANAN BAWAH -->
   <div id="cuteVisitorBadge" onclick="triggerCuteToast()" class="no-print fixed bottom-4 right-4 z-50 cursor-pointer select-none group">
     <!-- Balon Sapaan saat di-hover / klik -->
-    <div id="cuteTooltip" class="opacity-0 group-hover:opacity-100 transition-all duration-300 transform translate-y-1 group-hover:translate-y-0 mb-1.5 bg-slate-900 text-white text-[10px] font-bold px-2.5 py-1 rounded-lg shadow-lg border border-emerald-500/40 whitespace-nowrap text-center pointer-events-none">
-      Halo Bos! Semangat rekapnya ya ✨
+    <div id="cuteTooltip" class="opacity-0 group-hover:opacity-100 transition-all duration-300 transform translate-y-1 group-hover:translate-y-0 mb-1.5 bg-slate-900 text-white text-[10px] font-bold px-3 py-1.5 rounded-lg shadow-lg border border-emerald-500/40 whitespace-nowrap text-center pointer-events-none">
+      🔊 Klik saya buat dengar pesan Pakde! ✨
     </div>
 
     <!-- Kapsul Counter Utama -->
     <div class="flex items-center gap-2.5 bg-white/95 backdrop-blur-sm border-2 border-emerald-600 shadow-xl rounded-full pl-2 pr-3.5 py-1.5 hover:scale-105 active:scale-95 transition-all duration-200">
       <!-- Ikon Maskot Lucu dengan Indikator Online -->
-      <div class="relative flex items-center justify-center w-8 h-8 rounded-full bg-emerald-100 border border-emerald-300 text-lg cute-float">
+      <div id="mascotCircle" class="relative flex items-center justify-center w-8 h-8 rounded-full bg-emerald-100 border border-emerald-300 text-lg cute-float">
         <span id="cuteMascotEmoji">🤖</span>
         <span class="absolute -top-0.5 -right-0.5 flex h-2.5 w-2.5">
           <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
@@ -383,7 +395,10 @@
 
       <!-- Teks Angka Kunjungan -->
       <div class="flex flex-col leading-none">
-        <span class="text-[9px] font-extrabold uppercase tracking-wider text-slate-400">Total Dikunjungi</span>
+        <span class="text-[9px] font-extrabold uppercase tracking-wider text-slate-400 flex items-center gap-1">
+          <span>Total Dikunjungi</span>
+          <span class="text-emerald-600">🔊</span>
+        </span>
         <div class="flex items-baseline gap-1 mt-0.5">
           <span id="visitorCountValue" class="font-mono font-black text-xs text-emerald-950">...</span>
           <span class="text-[10px] font-bold text-emerald-700">kali 👀</span>
@@ -420,27 +435,103 @@
       ]
     };
 
-    // Daftar Emoji & Sapaan Lucu saat maskot diklik
-    const CUTE_MASCOTS = ["🤖", "🐱", "🦊", "🐼", "🚀", "💸", "✨"];
-    const CUTE_GREETINGS = [
-      "Halo Bos! Semangat rekapnya ya ✨",
-      "Jangan lupa cek nota fisiknya! 🧾",
-      "Siap cetak 1 lembar A4 rapi! 🖨️",
-      "Semoga lebih bayar / cair cepat! 💸",
-      "Mantap! Data tersimpan otomatis 👍"
+    // Daftar Emoji & Kalimat Khas Gaya Pak Jokowi
+    const CUTE_MASCOTS = ["🎙️", "🚲", "🤖", "🐱", "🚀", "💸", "✨"];
+    const JOKOWI_QUOTES = [
+      {
+        label: "🔊 \"Ya... kerja, kerja, kerja! Nota fisiknya jangan sampai hilang ya...\" 🚲",
+        speech: "Yaa... kerja, kerja, kerja. Nota fisiknya jangan sampai hilang yaa."
+      },
+      {
+        label: "🔊 \"Ya ndak tau... kok tanya saya? Coba cek lagi selisih kasnya...\" 😅",
+        speech: "Yaa ndak tau... kok tanya saya? Coba dicek lagi itu selisih kasnya."
+      },
+      {
+        label: "🔊 \"Kalau rekapannya rapi 1 lembar A4... saya beri sepeda!\" 🚲✨",
+        speech: "Kalau laporan rekapannya rapi satu lembar A empat... nanti saya beri sepeda."
+      },
+      {
+        label: "🔊 \"Alhamdulillah... semoga klaim reimburse-nya cepat cair ya...\" 💸",
+        speech: "Alhamdulillah... semoga klaim reimbers-nya cepat cair yaa."
+      },
+      {
+        label: "🔊 \"Jangan lupa... uang makan dan BBM dimasukkan semua ke tabel...\" 🧾",
+        speech: "Jangan lupa... itu uang makan dan B B M dimasukkan semua ke dalam tabel."
+      }
     ];
     let mascotIdx = 0;
+    let tooltipTimer = null;
+
+    // Fungsi Memutar Suara (Cek jokowi.mp3 dulu, jika tidak ada pakai Web Speech API Bahasa Indonesia)
+    function playJokowiVoice(speechText) {
+      const circleEl = document.getElementById("mascotCircle");
+      const audioEl = document.getElementById("jokowiCustomAudio");
+
+      if (circleEl) circleEl.classList.add("speaking-active");
+
+      // Coba putar file jokowi.mp3 jika ada di repo
+      if (audioEl && audioEl.getAttribute("src")) {
+        audioEl.currentTime = 0;
+        const playPromise = audioEl.play();
+        if (playPromise !== undefined) {
+          playPromise.then(() => {
+            audioEl.onended = () => {
+              if (circleEl) circleEl.classList.remove("speaking-active");
+            };
+          }).catch(() => {
+            // Jika file jokowi.mp3 tidak ditemukan, gunakan suara sintetis Bahasa Indonesia
+            speakIndonesianTTS(speechText, circleEl);
+          });
+          return;
+        }
+      }
+
+      speakIndonesianTTS(speechText, circleEl);
+    }
+
+    function speakIndonesianTTS(text, circleEl) {
+      if (!("speechSynthesis" in window)) {
+        if (circleEl) setTimeout(() => circleEl.classList.remove("speaking-active"), 1000);
+        return;
+      }
+
+      window.speechSynthesis.cancel();
+      const utter = new SpeechSynthesisUtterance(text);
+      utter.lang = "id-ID";
+      utter.rate = 0.85; // Tempo bicara agak pelan & santai khas Pakde
+      utter.pitch = 0.9; // Nada suara sedikit lebih rendah/bapak-bapak
+
+      // Cari voice Bahasa Indonesia jika tersedia di perangkat
+      const voices = window.speechSynthesis.getVoices();
+      const indoVoice = voices.find(v => v.lang && v.lang.toLowerCase().includes("id"));
+      if (indoVoice) utter.voice = indoVoice;
+
+      utter.onend = () => {
+        if (circleEl) circleEl.classList.remove("speaking-active");
+      };
+      utter.onerror = () => {
+        if (circleEl) circleEl.classList.remove("speaking-active");
+      };
+
+      window.speechSynthesis.speak(utter);
+    }
 
     function triggerCuteToast() {
-      mascotIdx = (mascotIdx + 1) % CUTE_MASCOTS.length;
+      const quoteObj = JOKOWI_QUOTES[mascotIdx % JOKOWI_QUOTES.length];
+      mascotIdx++;
+
       const emojiEl = document.getElementById("cuteMascotEmoji");
       const tipEl = document.getElementById("cuteTooltip");
-      if (emojiEl) emojiEl.innerText = CUTE_MASCOTS[mascotIdx];
+
+      if (emojiEl) emojiEl.innerText = CUTE_MASCOTS[mascotIdx % CUTE_MASCOTS.length];
       if (tipEl) {
-        tipEl.innerText = CUTE_GREETINGS[mascotIdx % CUTE_GREETINGS.length];
+        tipEl.innerText = quoteObj.label;
         tipEl.classList.remove("opacity-0");
-        setTimeout(() => tipEl.classList.add("opacity-0"), 2200);
+        if (tooltipTimer) clearTimeout(tooltipTimer);
+        tooltipTimer = setTimeout(() => tipEl.classList.add("opacity-0"), 4200);
       }
+
+      playJokowiVoice(quoteObj.speech);
     }
 
     // Fungsi Penghitung Kunjungan Global + Fallback LocalStorage
@@ -1026,6 +1117,9 @@ _Laporan lembar cetak A4 dan fisik nota terlampir._`;
       renderForms();
       renderView();
       initVisitorCounter();
+      if ("speechSynthesis" in window) {
+        window.speechSynthesis.getVoices();
+      }
     };
   </script>
 </body>
