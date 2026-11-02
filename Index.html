@@ -1,0 +1,942 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Laporan Pertanggungjawaban Cash Advance - PT DPG STOREID</title>
+  
+  <!-- Tailwind CSS & Lucide Icons -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://unpkg.com/lucide@latest"></script>
+  <!-- SheetJS untuk Ekspor Excel (.xlsx) -->
+  <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=JetBrains+Mono:wght@500;700;800&display=swap');
+    
+    body {
+      font-family: 'Inter', sans-serif;
+    }
+    .font-mono {
+      font-family: 'JetBrains Mono', monospace;
+    }
+
+    /* KONTROL MUTLAK 1 HALAMAN CETAK A4 */
+    @page {
+      size: A4 portrait;
+      margin: 8mm 10mm 6mm 10mm;
+    }
+
+    @media print {
+      html, body {
+        width: 210mm !important;
+        height: 297mm !important;
+        margin: 0 !important;
+        padding: 0 !important;
+        background: #ffffff !important;
+        color: #000000 !important;
+        overflow: hidden !important;
+        -webkit-print-color-adjust: exact !important;
+        print-color-adjust: exact !important;
+      }
+      .no-print {
+        display: none !important;
+      }
+      .a4-sheet {
+        box-shadow: none !important;
+        border: none !important;
+        margin: 0 !important;
+        width: 100% !important;
+        max-width: 100% !important;
+        height: 279mm !important;
+        max-height: 279mm !important;
+        padding: 0 !important;
+        display: flex !important;
+        flex-direction: column !important;
+        justify-content: space-between !important;
+        page-break-after: avoid !important;
+        page-break-inside: avoid !important;
+        break-inside: avoid !important;
+        overflow: hidden !important;
+      }
+    }
+
+    /* Garis Tabel Akuntansi Solid & Kontras Tinggi */
+    .table-bordered th, 
+    .table-bordered td {
+      border: 1.2px solid #0f172a !important;
+    }
+
+    .form-border-solid {
+      border: 1.5px solid #0f172a !important;
+    }
+
+    /* Scrollbar Halus di Panel Input */
+    .custom-scrollbar::-webkit-scrollbar {
+      width: 5px;
+      height: 5px;
+    }
+    .custom-scrollbar::-webkit-scrollbar-thumb {
+      background: #94a3b8;
+      border-radius: 4px;
+    }
+  </style>
+</head>
+<body class="bg-slate-100 text-slate-900 antialiased min-h-screen flex flex-col">
+
+  <!-- TOP NAVBAR AKSI -->
+  <header class="no-print bg-emerald-950 text-white px-4 py-2.5 shadow sticky top-0 z-50 flex flex-wrap items-center justify-between gap-3 border-b border-emerald-800">
+    <div class="flex items-center gap-3">
+      <div class="p-1.5 bg-emerald-800 rounded border border-emerald-600">
+        <i data-lucide="file-check" class="w-5 h-5 text-emerald-300"></i>
+      </div>
+      <div>
+        <h1 class="font-extrabold text-sm md:text-base leading-tight tracking-wide">PT DPG STOREID</h1>
+        <p class="text-[11px] text-emerald-300 font-medium">Sistem Cetak Laporan Perjalanan Dinas & Cash Advance Settlement</p>
+      </div>
+    </div>
+
+    <div class="flex flex-wrap items-center gap-2 text-xs">
+      <!-- Pilihan Mode Tampilan -->
+      <div class="bg-emerald-900 p-1 rounded flex items-center border border-emerald-700">
+        <button id="btnModeDaily" onclick="setMode('daily')" class="px-2.5 py-1 rounded font-bold transition bg-emerald-600 text-white shadow-sm">📅 Harian</button>
+        <button id="btnModeCategory" onclick="setMode('category')" class="px-2.5 py-1 rounded font-bold transition text-emerald-200 hover:text-white">📑 Kategori</button>
+        <button id="btnModeCompact" onclick="setMode('compact')" class="px-2.5 py-1 rounded font-bold transition text-emerald-200 hover:text-white">📊 2-Kolom</button>
+      </div>
+
+      <!-- Ekspor Excel -->
+      <button onclick="exportToExcel()" class="bg-teal-700 hover:bg-teal-600 text-white font-bold px-3 py-1.5 rounded flex items-center gap-1.5 shadow transition">
+        <i data-lucide="sheet" class="w-4 h-4"></i>
+        <span>Excel</span>
+      </button>
+
+      <!-- Salin Ringkasan WhatsApp -->
+      <button onclick="shareWhatsApp()" class="bg-green-600 hover:bg-green-500 text-white font-bold px-3 py-1.5 rounded flex items-center gap-1.5 shadow transition">
+        <i data-lucide="message-square" class="w-4 h-4"></i>
+        <span>Ringkasan WA</span>
+      </button>
+
+      <!-- Tombol Backup / Share Link -->
+      <div class="relative inline-block">
+        <button type="button" id="btnShareMenu" class="bg-emerald-800 hover:bg-emerald-700 text-white font-bold px-3 py-1.5 rounded flex items-center gap-1.5 shadow transition border border-emerald-600">
+          <i data-lucide="share-2" class="w-4 h-4"></i>
+          <span>Data / Link</span>
+        </button>
+        <div id="shareDropdown" class="hidden absolute right-0 mt-1.5 w-52 bg-white rounded-lg shadow-2xl border border-slate-300 py-1.5 z-50 text-slate-800 text-xs">
+          <button type="button" onclick="exportDataJson()" class="w-full text-left px-3 py-2 hover:bg-slate-100 flex items-center gap-2">
+            <span>💾 Simpan File (.json)</span>
+          </button>
+          <label class="w-full text-left px-3 py-2 hover:bg-slate-100 flex items-center gap-2 cursor-pointer">
+            <span>📂 Buka File (.json)</span>
+            <input type="file" id="importJsonInput" accept=".json" class="hidden" onchange="importDataJson(event)">
+          </label>
+          <button type="button" onclick="copyShareableLink()" class="w-full text-left px-3 py-2 hover:bg-slate-100 flex items-center gap-2">
+            <span>🔗 Salin Link Data (URL)</span>
+          </button>
+          <div class="border-t border-slate-200 my-1"></div>
+          <button type="button" onclick="resetFormToBlank()" class="w-full text-left px-3 py-2 hover:bg-rose-50 text-rose-700 flex items-center gap-2 font-bold">
+            <span>🗑️ Kosongkan Form Baru</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- Tombol Cetak A4 -->
+      <button onclick="window.print()" class="bg-amber-400 hover:bg-amber-300 text-slate-950 font-black px-3.5 py-1.5 rounded flex items-center gap-1.5 shadow transition">
+        <i data-lucide="printer" class="w-4 h-4"></i>
+        <span>Cetak A4 (1 Lembar)</span>
+      </button>
+    </div>
+  </header>
+
+  <!-- MAIN SPLIT WORKSPACE -->
+  <main class="flex-1 flex flex-col lg:flex-row overflow-hidden">
+    
+    <!-- PANEL KIRI: FORM PENGISIAN INPUT (NO PRINT) -->
+    <div class="no-print w-full lg:w-5/12 xl:w-[460px] bg-white border-r border-slate-300 p-4 overflow-y-auto max-h-[calc(100vh-50px)] custom-scrollbar">
+      
+      <div class="space-y-4 text-xs">
+
+        <!-- 1. Data Informasi Dinas -->
+        <div>
+          <div class="flex items-center justify-between pb-2 border-b-2 border-slate-200 mb-2.5">
+            <h2 class="font-bold text-slate-900 uppercase tracking-wide flex items-center gap-1.5 text-xs">
+              <span class="w-2.5 h-2.5 rounded-full bg-emerald-600 inline-block"></span> 1. Data Kunjungan Lapangan
+            </h2>
+            <button onclick="resetFormToBlank()" class="text-rose-600 font-bold hover:underline">Reset Form</button>
+          </div>
+          
+          <div class="grid grid-cols-2 gap-2">
+            <div class="col-span-2">
+              <label class="block text-slate-700 font-bold mb-0.5">Nama Perusahaan / Entitas</label>
+              <input type="text" id="companyName" placeholder="Contoh: PT DPG STOREID" class="w-full p-1.5 border border-slate-300 rounded font-bold uppercase text-emerald-900 focus:ring-1 focus:ring-emerald-600 outline-none" oninput="saveAndRender()">
+            </div>
+            <div>
+              <label class="block text-slate-700 font-bold mb-0.5">Nama Pelaksana</label>
+              <input type="text" id="employeeName" placeholder="Contoh: Nama Lengkap" class="w-full p-1.5 border border-slate-300 rounded font-medium focus:ring-1 focus:ring-emerald-600 outline-none" oninput="saveAndRender()">
+            </div>
+            <div>
+              <label class="block text-slate-700 font-bold mb-0.5">Departemen / Divisi</label>
+              <input type="text" id="employeeRoleDept" placeholder="Contoh: Accounts Receivable" class="w-full p-1.5 border border-slate-300 rounded font-medium focus:ring-1 focus:ring-emerald-600 outline-none" oninput="saveAndRender()">
+            </div>
+            <div>
+              <label class="block text-slate-700 font-bold mb-0.5">Kota / Wilayah Tujuan</label>
+              <input type="text" id="destCity" placeholder="Contoh: Semarang & Solo" class="w-full p-1.5 border border-slate-300 rounded font-medium focus:ring-1 focus:ring-emerald-600 outline-none" oninput="saveAndRender()">
+            </div>
+            <div>
+              <label class="block text-slate-700 font-bold mb-0.5">Nomor Referensi CA</label>
+              <input type="text" id="docNumber" placeholder="Contoh: CA/SAL-AR/2026/XI-001" class="w-full p-1.5 border border-slate-300 rounded font-mono font-bold focus:ring-1 focus:ring-emerald-600 outline-none" oninput="saveAndRender()">
+            </div>
+            <div>
+              <label class="block text-slate-700 font-bold mb-0.5">Tgl Berangkat</label>
+              <input type="date" id="startDate" class="w-full p-1.5 border border-slate-300 rounded font-medium outline-none" onchange="saveAndRender()">
+            </div>
+            <div>
+              <label class="block text-slate-700 font-bold mb-0.5">Tgl Kembali</label>
+              <input type="date" id="endDate" class="w-full p-1.5 border border-slate-300 rounded font-medium outline-none" onchange="saveAndRender()">
+            </div>
+            <div class="col-span-2">
+              <label class="block text-slate-700 font-bold mb-0.5">Agenda / Keperluan Dinas</label>
+              <input type="text" id="tripPurpose" placeholder="Contoh: Kunjungan kios & penagihan faktur regional..." class="w-full p-1.5 border border-slate-300 rounded font-medium outline-none" oninput="saveAndRender()">
+            </div>
+          </div>
+        </div>
+
+        <!-- 2. Uang Masuk (Cash Advance) -->
+        <div class="pt-2 border-t-2 border-slate-200">
+          <div class="flex items-center justify-between pb-2 mb-2">
+            <h2 class="font-bold text-slate-900 uppercase tracking-wide flex items-center gap-1.5 text-xs">
+              <span class="w-2.5 h-2.5 rounded-full bg-blue-600 inline-block"></span> 2. Uang Masuk (Cash Advance)
+            </h2>
+            <button type="button" onclick="addIncomeRow()" class="text-blue-700 bg-blue-50 border border-blue-300 px-2.5 py-0.5 rounded hover:bg-blue-100 font-bold">
+              + Tambah Masuk
+            </button>
+          </div>
+          <div id="incomeFormList" class="space-y-1.5 max-h-40 overflow-y-auto custom-scrollbar pr-1"></div>
+        </div>
+
+        <!-- 3. Uang Keluar (Realisasi Pengeluaran) -->
+        <div class="pt-2 border-t-2 border-slate-200">
+          <div class="flex items-center justify-between pb-2 mb-2">
+            <div class="flex items-center gap-2">
+              <h2 class="font-bold text-slate-900 uppercase tracking-wide flex items-center gap-1.5 text-xs">
+                <span class="w-2.5 h-2.5 rounded-full bg-rose-600 inline-block"></span> 3. Realisasi Pengeluaran
+              </h2>
+              <span id="transCountBadge" class="bg-slate-200 text-slate-800 px-2 py-0.5 rounded text-[10px] font-mono font-bold">0 Item</span>
+            </div>
+            <div class="flex gap-1.5">
+              <button type="button" onclick="populateExampleData()" class="text-slate-700 bg-slate-100 border border-slate-300 px-2 py-0.5 rounded hover:bg-slate-200 font-bold">
+                ⚡ Isi Contoh
+              </button>
+              <button type="button" onclick="addExpenseRow()" class="text-emerald-800 bg-emerald-50 border border-emerald-300 px-2 py-0.5 rounded hover:bg-emerald-100 font-bold">
+                + Tambah Baris
+              </button>
+            </div>
+          </div>
+          <div id="expenseFormList" class="space-y-1.5 max-h-72 overflow-y-auto custom-scrollbar pr-1"></div>
+        </div>
+
+        <!-- 4. Penandatangan -->
+        <div class="pt-2 border-t-2 border-slate-200">
+          <div class="flex items-center justify-between pb-2 mb-2">
+            <h2 class="font-bold text-slate-900 uppercase tracking-wide flex items-center gap-1.5 text-xs">
+              <span class="w-2.5 h-2.5 rounded-full bg-purple-600 inline-block"></span> 4. Otorisasi Penandatangan
+            </h2>
+            <button type="button" onclick="addSignerRow()" class="text-purple-700 bg-purple-50 border border-purple-300 px-2.5 py-0.5 rounded hover:bg-purple-100 font-bold">
+              + Signer
+            </button>
+          </div>
+          <div id="signersFormList" class="space-y-1.5"></div>
+        </div>
+
+      </div>
+    </div>
+
+    <!-- PANEL KANAN: LIVE PREVIEW KERTAS A4 SIAP CETAK -->
+    <div class="flex-1 bg-slate-200/80 p-4 md:p-6 overflow-y-auto flex justify-center custom-scrollbar">
+      
+      <!-- LEMBAR CETAK RESMI A4 -->
+      <div id="printSheet" class="a4-sheet w-full max-w-[210mm] bg-white form-border-solid p-6 shadow-xl text-black flex flex-col justify-between" style="font-family: Arial, Helvetica, sans-serif;">
+        
+        <div>
+          <!-- KOP SURAT FORMAL TEGAS -->
+          <div class="border-b-2 border-black pb-2 mb-2 flex justify-between items-end">
+            <div>
+              <h1 id="viewCompanyName" class="text-base md:text-lg font-black tracking-wider text-black uppercase leading-tight">PT DPG STOREID</h1>
+              <p class="text-[9.5pt] font-extrabold text-slate-800 uppercase tracking-wide mt-0.5">FORMULIR PERTANGGUNGJAWABAN CASH ADVANCE DINAS</p>
+            </div>
+            <div class="text-right">
+              <span class="text-[7.5pt] font-bold text-slate-600 block uppercase">No. Dokumen:</span>
+              <span id="viewDocNumber" class="text-[9.5pt] font-mono font-black text-black">CA/SAL-AR/2026/XI-001</span>
+            </div>
+          </div>
+
+          <!-- KOTAK INFORMASI DINAS -->
+          <div class="border-2 border-black p-2 bg-slate-50 text-[8.5pt] mb-2.5">
+            <div class="grid grid-cols-2 gap-x-4 gap-y-0.5 font-medium">
+              <div><span class="text-slate-700 font-bold">Pelaksana Dinas :</span> <span id="viewEmployeeName" class="font-black text-black">Dandy Rimanto</span></div>
+              <div><span class="text-slate-700 font-bold">Departemen :</span> <span id="viewRoleDept" class="font-black text-black">Accounts Receivable</span></div>
+              <div><span class="text-slate-700 font-bold">Wilayah Tujuan :</span> <span id="viewDestCity" class="font-black text-black">Bogor, Cianjur, Sukabumi</span></div>
+              <div><span class="text-slate-700 font-bold">Periode Tugas :</span> <span id="viewDuration" class="font-black text-black">-</span></div>
+              <div class="col-span-2 pt-0.5 border-t border-slate-300">
+                <span class="text-slate-700 font-bold">Agenda / Keperluan :</span> <span id="viewTripPurpose" class="font-extrabold text-black">-</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- TABEL A: UANG MASUK (CASH ADVANCE) -->
+          <div class="mb-2.5">
+            <h3 class="text-[9pt] font-black text-black uppercase tracking-wider mb-0.5 flex items-center gap-1.5">
+              <span>A. PENERIMAAN DANA (CASH ADVANCE)</span>
+            </h3>
+            <table class="w-full text-left border-collapse table-bordered text-[8.5pt]">
+              <thead>
+                <tr class="bg-slate-200 text-black font-black uppercase text-[8pt]">
+                  <th class="p-1 text-center w-8">No</th>
+                  <th class="p-1 w-24">Tanggal</th>
+                  <th class="p-1">Keterangan Sumber Kas</th>
+                  <th class="p-1 text-right w-36">Jumlah (Rp)</th>
+                </tr>
+              </thead>
+              <tbody id="viewIncomeTableBody" class="font-medium"></tbody>
+              <tfoot>
+                <tr class="bg-slate-100 font-black border-t-2 border-black">
+                  <td colspan="3" class="p-1 text-right uppercase text-[8.5pt]">TOTAL UANG MUKA DITERIMA (A):</td>
+                  <td id="viewTotalIncome" class="p-1 text-right font-mono font-black text-emerald-950 text-[9pt]">Rp. 0,00</td>
+                </tr>
+              </tfoot>
+            </table>
+          </div>
+
+          <!-- TABEL B: UANG KELUAR (REALISASI) -->
+          <div class="mb-2.5">
+            <div class="flex justify-between items-center mb-0.5">
+              <h3 class="text-[9pt] font-black text-black uppercase tracking-wider">B. REALISASI PENGELUARAN DINAS</h3>
+              <span id="viewModeIndicator" class="text-[7.5pt] font-bold text-black uppercase bg-slate-200 px-1.5 py-0.2 border border-black rounded">Mode: Harian</span>
+            </div>
+            <div id="viewExpensesContainer"></div>
+          </div>
+
+          <!-- KOTAK REKONSILIASI KAS RESMI (LAYOUT SEMPURNA & BEBAS OVERLAP) -->
+          <div class="flex justify-end mb-2.5">
+            <div class="w-84 border-2 border-black bg-slate-50 p-2 text-[8.5pt]">
+              <table class="w-full border-collapse">
+                <tbody>
+                  <tr class="text-slate-800 font-bold">
+                    <td class="py-0.5 pr-2">Total Kas Diterima (A):</td>
+                    <td id="viewSumA" class="py-0.5 text-right font-mono font-black text-black whitespace-nowrap">Rp. 0,00</td>
+                  </tr>
+                  <tr class="text-slate-800 font-bold">
+                    <td class="py-0.5 pr-2">Total Pengeluaran Riil (B):</td>
+                    <td id="viewSumB" class="py-0.5 text-right font-mono font-black text-black whitespace-nowrap">Rp. 0,00</td>
+                  </tr>
+                  <tr class="border-t-2 border-black">
+                    <td id="viewDiffLabel" class="pt-1.5 pb-0.5 pr-2 font-black text-[9pt] uppercase text-black">
+                      LEBIH BAYAR (KEMBALI KE KASIR):
+                    </td>
+                    <td id="viewDiffValue" class="pt-1.5 pb-0.5 text-right font-mono font-black text-[10pt] whitespace-nowrap text-emerald-900">
+                      Rp. 0,00
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+              <div id="viewDiffNote" class="text-[7pt] text-right font-bold text-slate-700 italic border-t border-slate-300 pt-0.5 mt-0.5">
+                *Sisa kelebihan dana disetor kembali ke kasir kantor.
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- KOLOM TANDA TANGAN (KOTAK SOLID 1 HALAMAN) -->
+        <div id="viewSignersContainer" class="grid gap-3 pt-2 border-t-2 border-black text-center text-[8.5pt]"></div>
+
+      </div>
+    </div>
+
+  </main>
+
+  <!-- JAVASCRIPT LOGIC ENGINE -->
+  <script>
+    const CATEGORIES = ["Uang Makan", "Hotel & Penginapan", "BBM & Transportasi", "Tol & Parkir", "Operasional Kios", "Lain-lain"];
+
+    let printMode = "daily";
+    const todayStr = new Date().toISOString().split("T")[0];
+
+    // Data Awal Bersih / Kosong
+    let appData = {
+      companyName: "PT DPG STOREID",
+      employeeName: "",
+      employeeRoleDept: "",
+      destCity: "",
+      docNumber: "",
+      startDate: todayStr,
+      endDate: todayStr,
+      tripPurpose: "",
+      incomes: [
+        { date: todayStr, desc: "Cash Advance Awal", amount: 0 }
+      ],
+      expenses: [],
+      signers: [
+        { role: "Dibuat Oleh,", name: "", title: "Pelaksana Dinas" },
+        { role: "Diperiksa Oleh,", name: "Finance Dept.", title: "Finance Staff" },
+        { role: "Disetujui Oleh,", name: "Management DPG", title: "Finance Manager" }
+      ]
+    };
+
+    // Format Rupiah Akuntansi Resmi (Rp. 100.000,00)
+    function formatRp(val) {
+      const num = Math.round(Number(val) || 0);
+      return "Rp. " + num.toLocaleString("id-ID") + ",00";
+    }
+
+    // Format Dinamis Saat Mengetik (tanpa ,00 agar kursor tidak lompat)
+    function formatRupiahInput(val) {
+      if (!val && val !== 0) return "";
+      return "Rp " + Number(val).toLocaleString("id-ID");
+    }
+
+    function parseCleanDigits(str) {
+      return Number(String(str).replace(/[^0-9]/g, "")) || 0;
+    }
+
+    function formatDateIndo(dateStr) {
+      if (!dateStr) return "-";
+      const parts = dateStr.split("-");
+      if (parts.length === 3) return `${parts[2]}/${parts[1]}/${parts[0]}`;
+      return dateStr;
+    }
+
+    function setElText(id, text) {
+      const el = document.getElementById(id);
+      if (el) el.innerText = text;
+    }
+
+    function setMode(mode) {
+      printMode = mode;
+      saveAndRender();
+    }
+
+    function saveAndRender() {
+      appData.companyName = document.getElementById("companyName").value;
+      appData.employeeName = document.getElementById("employeeName").value;
+      appData.employeeRoleDept = document.getElementById("employeeRoleDept").value;
+      appData.destCity = document.getElementById("destCity").value;
+      appData.docNumber = document.getElementById("docNumber").value;
+      appData.startDate = document.getElementById("startDate").value;
+      appData.endDate = document.getElementById("endDate").value;
+      appData.tripPurpose = document.getElementById("tripPurpose").value;
+
+      try {
+        localStorage.setItem("sal_ca_data_final_v1", JSON.stringify(appData));
+      } catch (e) {}
+
+      renderView();
+    }
+
+    // Render Forms
+    function renderForms() {
+      // 1. Form Uang Masuk
+      const incContainer = document.getElementById("incomeFormList");
+      if (incContainer) {
+        incContainer.innerHTML = appData.incomes.map((inc, i) => `
+          <div class="flex items-center gap-1.5 bg-slate-50 p-1.5 border border-slate-300 rounded">
+            <input type="date" value="${inc.date}" class="w-28 p-1 border border-slate-300 rounded text-[11px] font-medium" onchange="appData.incomes[${i}].date=this.value; saveAndRender()">
+            <input type="text" value="${inc.desc}" placeholder="Keterangan..." class="w-full p-1 border border-slate-300 rounded text-[11px] font-medium" oninput="appData.incomes[${i}].desc=this.value; saveAndRender()">
+            <input type="text" value="${formatRupiahInput(inc.amount)}" class="w-32 p-1 border border-slate-300 rounded font-mono font-bold text-right text-[11px] text-emerald-950" 
+              onfocus="this.value = parseCleanDigits(this.value) || ''"
+              oninput="this.value = formatRupiahInput(parseCleanDigits(this.value)); appData.incomes[${i}].amount = parseCleanDigits(this.value); saveAndRender()"
+              onblur="this.value = formatRupiahInput(appData.incomes[${i}].amount)">
+            <button type="button" onclick="appData.incomes.splice(${i}, 1); renderForms(); saveAndRender()" class="text-rose-600 px-1 font-bold hover:bg-rose-50 rounded">✕</button>
+          </div>
+        `).join("");
+      }
+
+      // 2. Form Uang Keluar
+      const expContainer = document.getElementById("expenseFormList");
+      const badge = document.getElementById("transCountBadge");
+      if (badge) badge.innerText = `${appData.expenses.length} Item`;
+
+      if (expContainer) {
+        expContainer.innerHTML = appData.expenses.map((exp, i) => `
+          <div class="flex flex-col gap-1 bg-slate-50 p-1.5 border border-slate-300 rounded">
+            <div class="flex items-center gap-1.5">
+              <input type="date" value="${exp.date}" class="w-28 p-1 border border-slate-300 rounded text-[11px] font-medium" onchange="appData.expenses[${i}].date=this.value; saveAndRender()">
+              <select class="w-36 p-1 border border-slate-300 rounded text-[11px] bg-white font-bold text-slate-800" onchange="appData.expenses[${i}].cat=this.value; saveAndRender()">
+                ${CATEGORIES.map(c => `<option value="${c}" ${exp.cat === c ? 'selected' : ''}>${c}</option>`).join("")}
+              </select>
+              <input type="text" value="${formatRupiahInput(exp.amount)}" class="w-32 p-1 border border-slate-300 rounded font-mono font-bold text-right text-[11px] text-slate-900"
+                onfocus="this.value = parseCleanDigits(this.value) || ''"
+                oninput="this.value = formatRupiahInput(parseCleanDigits(this.value)); appData.expenses[${i}].amount = parseCleanDigits(this.value); saveAndRender()"
+                onblur="this.value = formatRupiahInput(appData.expenses[${i}].amount)">
+              <button type="button" onclick="appData.expenses.splice(${i}, 1); renderForms(); saveAndRender()" class="text-rose-600 px-1 font-bold hover:bg-rose-50 rounded">✕</button>
+            </div>
+            <div class="flex items-center gap-2">
+              <input type="text" value="${exp.desc}" placeholder="Keterangan transaksi..." class="w-full p-1 border border-slate-300 rounded text-[11px] font-medium" oninput="appData.expenses[${i}].desc=this.value; saveAndRender()">
+              <label class="flex items-center gap-1 text-[10px] font-bold text-slate-700 whitespace-nowrap cursor-pointer">
+                <input type="checkbox" ${exp.hasReceipt ? 'checked' : ''} onchange="appData.expenses[${i}].hasReceipt=this.checked; saveAndRender()"> Ada Nota
+              </label>
+            </div>
+          </div>
+        `).join("");
+      }
+
+      // 3. Form Signer
+      const sigContainer = document.getElementById("signersFormList");
+      if (sigContainer) {
+        sigContainer.innerHTML = appData.signers.map((sig, i) => `
+          <div class="flex items-center gap-1.5 bg-slate-50 p-1.5 border border-slate-300 rounded">
+            <input type="text" value="${sig.role}" placeholder="Label..." class="w-28 p-1 border border-slate-300 rounded text-[11px] font-bold text-slate-700" oninput="appData.signers[${i}].role=this.value; saveAndRender()">
+            <input type="text" value="${sig.name}" placeholder="Nama..." class="w-full p-1 border border-slate-300 rounded text-[11px] font-medium" oninput="appData.signers[${i}].name=this.value; saveAndRender()">
+            <input type="text" value="${sig.title}" placeholder="Jabatan" class="w-28 p-1 border border-slate-300 rounded text-[11px] font-medium" oninput="appData.signers[${i}].title=this.value; saveAndRender()">
+            <button type="button" onclick="appData.signers.splice(${i}, 1); renderForms(); saveAndRender()" class="text-rose-600 px-1 font-bold hover:bg-rose-50 rounded">✕</button>
+          </div>
+        `).join("");
+      }
+    }
+
+    function addIncomeRow() {
+      appData.incomes.push({ date: appData.startDate || "2026-10-26", desc: "", amount: 0 });
+      renderForms();
+      saveAndRender();
+    }
+
+    function addExpenseRow() {
+      appData.expenses.push({ date: appData.startDate || "2026-10-26", cat: "Lain-lain", desc: "", amount: 0, hasReceipt: true });
+      renderForms();
+      saveAndRender();
+    }
+
+    function addSignerRow() {
+      appData.signers.push({ role: "Mengetahui,", name: "", title: "" });
+      renderForms();
+      saveAndRender();
+    }
+
+    // Tombol Contoh Data (Data Dandy dipindahkan ke sini)
+    function populateExampleData() {
+      appData = {
+        companyName: "PT DPG STOREID",
+        employeeName: "Dandy Rimanto",
+        employeeRoleDept: "Accounts Receivable",
+        destCity: "Bogor, Cianjur, Sukabumi",
+        docNumber: "CA/DPG-AR/2026/XI-001",
+        startDate: "2026-10-26",
+        endDate: "2026-10-29",
+        tripPurpose: "Kunjungan kios & rekonsiliasi faktur wilayah Bocimi",
+        incomes: [
+          { date: "2026-10-26", desc: "Cash Advance Awal Dinas Lapangan", amount: 5500000 },
+          { date: "2026-10-28", desc: "Top-up Kebutuhan Operasional & BBM", amount: 750000 }
+        ],
+        expenses: [
+          { date: "2026-10-26", cat: "Hotel & Penginapan", desc: "Hotel Grand Amira (Malam 1)", amount: 450000, hasReceipt: true },
+          { date: "2026-10-26", cat: "BBM & Transportasi", desc: "BBM Operasional Wilayah Bogor", amount: 350000, hasReceipt: true },
+          { date: "2026-10-26", cat: "Uang Makan", desc: "Makan Siang & Malam Tim", amount: 140000, hasReceipt: true },
+          { date: "2026-10-27", cat: "Tol & Parkir", desc: "Tol Bocimi & Parkir Kios", amount: 185000, hasReceipt: true },
+          { date: "2026-10-27", cat: "Operasional Kios", desc: "Air Mineral Dus & Jamuan Diskusi Toko", amount: 85000, hasReceipt: false },
+          { date: "2026-10-28", cat: "Hotel & Penginapan", desc: "Penginapan Cianjur (Malam 2)", amount: 420000, hasReceipt: true },
+          { date: "2026-10-29", cat: "BBM & Transportasi", desc: "BBM Operasional Tol Pulang", amount: 380000, hasReceipt: true }
+        ],
+        signers: [
+          { role: "Dibuat Oleh,", name: "Dandy Rimanto", title: "AR Supervisor" },
+          { role: "Diperiksa Oleh,", name: "Finance Dept.", title: "Finance Staff" },
+          { role: "Disetujui Oleh,", name: "Management DPG", title: "Finance Manager" }
+        ]
+      };
+      syncInputsFromData();
+      renderForms();
+      saveAndRender();
+    }
+
+    function resetFormToBlank() {
+      if (confirm("Kosongkan semua data untuk perjalanan dinas baru?")) {
+        const curDate = new Date().toISOString().split("T")[0];
+        appData.companyName = "PT DPG STOREID";
+        appData.employeeName = "";
+        appData.employeeRoleDept = "";
+        appData.destCity = "";
+        appData.docNumber = "";
+        appData.startDate = curDate;
+        appData.endDate = curDate;
+        appData.tripPurpose = "";
+        appData.incomes = [{ date: curDate, desc: "Cash Advance Awal", amount: 0 }];
+        appData.expenses = [];
+        syncInputsFromData();
+        renderForms();
+        saveAndRender();
+      }
+    }
+
+    // MAIN RENDER A4 SHEET
+    function renderView() {
+      setElText("viewCompanyName", (appData.companyName || "PT DPG STOREID").toUpperCase());
+      setElText("viewDocNumber", appData.docNumber || "-");
+      setElText("viewEmployeeName", appData.employeeName || "-");
+      setElText("viewRoleDept", appData.employeeRoleDept || "-");
+      setElText("viewDestCity", appData.destCity || "-");
+      setElText("viewDuration", `${formatDateIndo(appData.startDate)} s/d ${formatDateIndo(appData.endDate)}`);
+      setElText("viewTripPurpose", appData.tripPurpose || "-");
+
+      // Update Button UI Mode
+      ['btnModeDaily', 'btnModeCategory', 'btnModeCompact'].forEach(id => {
+        const btn = document.getElementById(id);
+        if (btn) btn.className = "px-2.5 py-1 rounded font-bold transition text-emerald-200 hover:text-white";
+      });
+      if (printMode === 'daily') document.getElementById("btnModeDaily").className = "px-2.5 py-1 rounded font-bold transition bg-emerald-600 text-white shadow-sm";
+      if (printMode === 'category') document.getElementById("btnModeCategory").className = "px-2.5 py-1 rounded font-bold transition bg-emerald-600 text-white shadow-sm";
+      if (printMode === 'compact') document.getElementById("btnModeCompact").className = "px-2.5 py-1 rounded font-bold transition bg-emerald-600 text-white shadow-sm";
+
+      // Render Uang Masuk
+      let totalIncome = 0;
+      const incTbody = document.getElementById("viewIncomeTableBody");
+      if (incTbody) {
+        incTbody.innerHTML = appData.incomes.map((inc, i) => {
+          totalIncome += Number(inc.amount || 0);
+          return `
+            <tr class="hover:bg-slate-50">
+              <td class="p-1 text-center font-mono font-bold">${i + 1}</td>
+              <td class="p-1 font-mono font-bold">${formatDateIndo(inc.date)}</td>
+              <td class="p-1 font-bold">${inc.desc || "-"}</td>
+              <td class="p-1 text-right font-mono font-black">${formatRp(inc.amount)}</td>
+            </tr>
+          `;
+        }).join("");
+      }
+      setElText("viewTotalIncome", formatRp(totalIncome));
+
+      // Render Uang Keluar
+      const expContainer = document.getElementById("viewExpensesContainer");
+      let totalExpense = 0;
+
+      if (printMode === 'daily') {
+        setElText("viewModeIndicator", "MODE: PER HARI (DAILY)");
+        const grouped = {};
+        appData.expenses.forEach(e => {
+          totalExpense += Number(e.amount || 0);
+          if (!grouped[e.date]) grouped[e.date] = { total: 0, items: [] };
+          grouped[e.date].total += Number(e.amount || 0);
+          grouped[e.date].items.push(e);
+        });
+
+        const dates = Object.keys(grouped).sort();
+        let rowsHtml = dates.map((d, idx) => {
+          const g = grouped[d];
+          const descList = g.items.map(it => `<span class="font-bold text-black">${it.desc}</span> (${formatRp(it.amount)}) ${it.hasReceipt ? '<b class="text-emerald-800">[✓ Nota]</b>' : '<b class="text-rose-700">[Non-Nota]</b>'}`).join("; ");
+          return `
+            <tr>
+              <td class="p-1 text-center font-mono font-bold">${idx + 1}</td>
+              <td class="p-1 font-mono font-black text-black">${formatDateIndo(d)}</td>
+              <td class="p-1 text-[8pt] leading-tight">${descList}</td>
+              <td class="p-1 text-right font-mono font-black text-[9pt]">${formatRp(g.total)}</td>
+            </tr>
+          `;
+        }).join("");
+
+        expContainer.innerHTML = `
+          <table class="w-full text-left border-collapse table-bordered text-[8.5pt]">
+            <thead>
+              <tr class="bg-slate-200 text-black font-black uppercase text-[8pt]">
+                <th class="p-1 text-center w-8">No</th>
+                <th class="p-1 w-24">Tanggal</th>
+                <th class="p-1">Rincian Pengeluaran Lapangan & Status Nota</th>
+                <th class="p-1 text-right w-36">Subtotal (Rp)</th>
+              </tr>
+            </thead>
+            <tbody class="font-medium">${rowsHtml}</tbody>
+            <tfoot>
+              <tr class="bg-slate-100 font-black border-t-2 border-black">
+                <td colspan="3" class="p-1 text-right uppercase text-[8.5pt]">TOTAL PENGELUARAN RIIL (B):</td>
+                <td class="p-1 text-right font-mono font-black text-black text-[9pt]">${formatRp(totalExpense)}</td>
+              </tr>
+            </tfoot>
+          </table>
+        `;
+      } else if (printMode === 'category') {
+        setElText("viewModeIndicator", "MODE: KATEGORI POS");
+        const catGroup = {};
+        CATEGORIES.forEach(c => catGroup[c] = { total: 0, count: 0, notes: [] });
+        appData.expenses.forEach(e => {
+          totalExpense += Number(e.amount || 0);
+          if (!catGroup[e.cat]) catGroup[e.cat] = { total: 0, count: 0, notes: [] };
+          catGroup[e.cat].total += Number(e.amount || 0);
+          catGroup[e.cat].count++;
+          if (e.desc) catGroup[e.cat].notes.push(e.desc);
+        });
+
+        let rowsHtml = CATEGORIES.map((c, idx) => {
+          const g = catGroup[c];
+          if (g.total === 0 && g.count === 0) return "";
+          return `
+            <tr>
+              <td class="p-1 text-center font-mono font-bold">${idx + 1}</td>
+              <td class="p-1 font-black text-black">${c}</td>
+              <td class="p-1 text-[8pt] font-medium">${g.count} transaksi terlampir: ${g.notes.slice(0, 3).join(", ")}${g.notes.length > 3 ? '...' : ''}</td>
+              <td class="p-1 text-right font-mono font-black text-[9pt]">${formatRp(g.total)}</td>
+            </tr>
+          `;
+        }).filter(Boolean).join("");
+
+        expContainer.innerHTML = `
+          <table class="w-full text-left border-collapse table-bordered text-[8.5pt]">
+            <thead>
+              <tr class="bg-slate-200 text-black font-black uppercase text-[8pt]">
+                <th class="p-1 text-center w-8">No</th>
+                <th class="p-1 w-36">Kategori Pos</th>
+                <th class="p-1">Keterangan Nota & Lampiran</th>
+                <th class="p-1 text-right w-36">Subtotal (Rp)</th>
+              </tr>
+            </thead>
+            <tbody class="font-medium">${rowsHtml}</tbody>
+            <tfoot>
+              <tr class="bg-slate-100 font-black border-t-2 border-black">
+                <td colspan="3" class="p-1 text-right uppercase text-[8.5pt]">TOTAL PENGELUARAN RIIL (B):</td>
+                <td class="p-1 text-right font-mono font-black text-black text-[9pt]">${formatRp(totalExpense)}</td>
+              </tr>
+            </tfoot>
+          </table>
+        `;
+      } else {
+        setElText("viewModeIndicator", "MODE: 2-KOLOM RINCI");
+        let rowsHtml = appData.expenses.map((e, idx) => {
+          totalExpense += Number(e.amount || 0);
+          return `
+            <tr>
+              <td class="p-1 text-center font-mono font-bold">${idx + 1}</td>
+              <td class="p-1 font-mono font-bold">${formatDateIndo(e.date)}</td>
+              <td class="p-1 font-bold text-black">${e.cat} - <span class="font-medium">${e.desc}</span> ${e.hasReceipt ? '[✓]' : '[-]'}</td>
+              <td class="p-1 text-right font-mono font-black">${formatRp(e.amount)}</td>
+            </tr>
+          `;
+        }).join("");
+
+        expContainer.innerHTML = `
+          <table class="w-full text-left border-collapse table-bordered text-[8pt]">
+            <thead>
+              <tr class="bg-slate-200 text-black font-black uppercase text-[7.5pt]">
+                <th class="p-1 text-center w-7">No</th>
+                <th class="p-1 w-20">Tanggal</th>
+                <th class="p-1">Uraian Transaksi</th>
+                <th class="p-1 text-right w-32">Jumlah (Rp)</th>
+              </tr>
+            </thead>
+            <tbody>${rowsHtml}</tbody>
+            <tfoot>
+              <tr class="bg-slate-100 font-black border-t-2 border-black">
+                <td colspan="3" class="p-1 text-right uppercase text-[8pt]">TOTAL PENGELUARAN RIIL (B):</td>
+                <td class="p-1 text-right font-mono font-black text-black text-[8.5pt]">${formatRp(totalExpense)}</td>
+              </tr>
+            </tfoot>
+          </table>
+        `;
+      }
+
+      // Perhitungan Selisih Kas (Settlement)
+      const diff = totalIncome - totalExpense;
+      setElText("viewSumA", formatRp(totalIncome));
+      setElText("viewSumB", formatRp(totalExpense));
+      
+      const label = document.getElementById("viewDiffLabel");
+      const val = document.getElementById("viewDiffValue");
+      const note = document.getElementById("viewDiffNote");
+
+      if (diff > 0) {
+        if (label) label.innerText = "LEBIH BAYAR (KEMBALI KE KASIR):";
+        if (val) {
+          val.innerText = formatRp(diff);
+          val.className = "pt-1.5 pb-0.5 text-right font-mono font-black text-[10pt] whitespace-nowrap text-emerald-900";
+        }
+        if (note) note.innerText = "*Sisa kelebihan dana disetor kembali ke kasir kantor.";
+      } else if (diff < 0) {
+        if (label) label.innerText = "KURANG BAYAR (KLAIM REIMBURSE):";
+        if (val) {
+          val.innerText = formatRp(Math.abs(diff));
+          val.className = "pt-1.5 pb-0.5 text-right font-mono font-black text-[10pt] whitespace-nowrap text-rose-900";
+        }
+        if (note) note.innerText = "*Kekurangan dana talangan akan diganti oleh kasir kantor.";
+      } else {
+        if (label) label.innerText = "SALDO NIHIL (PAS):";
+        if (val) {
+          val.innerText = formatRp(0);
+          val.className = "pt-1.5 pb-0.5 text-right font-mono font-black text-[10pt] whitespace-nowrap text-black";
+        }
+        if (note) note.innerText = "*Pengeluaran pas sesuai penerimaan uang muka.";
+      }
+
+      // Kolom Tanda Tangan
+      const signersContainer = document.getElementById("viewSignersContainer");
+      if (signersContainer) {
+        const colCount = Math.min(Math.max(appData.signers.length, 1), 4);
+        signersContainer.className = `grid grid-cols-${colCount} gap-3 pt-2 border-t-2 border-black text-center text-[8.5pt]`;
+        signersContainer.innerHTML = appData.signers.map(s => `
+          <div>
+            <p class="text-[8.5pt] font-extrabold text-slate-800 mb-8">${s.role}</p>
+            <p class="font-black underline text-[9pt] text-black">${s.name || "........................"}</p>
+            <p class="text-[8pt] font-bold text-slate-700">${s.title || " "}</p>
+          </div>
+        `).join("");
+      }
+
+      if (window.lucide) lucide.createIcons();
+    }
+
+    // Ekspor Excel (.xlsx)
+    function exportToExcel() {
+      const wb = XLSX.utils.book_new();
+
+      const expRows = appData.expenses.map((e, idx) => ({
+        "No": idx + 1,
+        "Tanggal": e.date,
+        "Kategori": e.cat,
+        "Keterangan": e.desc,
+        "Status Nota": e.hasReceipt ? "Ada Nota" : "Tanpa Nota",
+        "Jumlah (Rp)": e.amount
+      }));
+      const wsExp = XLSX.utils.json_to_sheet(expRows);
+      XLSX.utils.book_append_sheet(wb, wsExp, "Realisasi_Pengeluaran");
+
+      const incRows = appData.incomes.map((inc, idx) => ({
+        "No": idx + 1,
+        "Tanggal": inc.date,
+        "Sumber Kas": inc.desc,
+        "Jumlah (Rp)": inc.amount
+      }));
+      const wsInc = XLSX.utils.json_to_sheet(incRows);
+      XLSX.utils.book_append_sheet(wb, wsInc, "Uang_Masuk_CA");
+
+      XLSX.writeFile(wb, `Laporan_CA_${appData.employeeName.replace(/\s+/g, '_')}.xlsx`);
+    }
+
+    // Salin Teks Ringkasan WhatsApp
+    function shareWhatsApp() {
+      let totalIn = appData.incomes.reduce((acc, x) => acc + Number(x.amount || 0), 0);
+      let totalOut = appData.expenses.reduce((acc, x) => acc + Number(x.amount || 0), 0);
+      let diff = totalIn - totalOut;
+      let statusText = diff > 0 
+        ? `Lebih Bayar: ${formatRp(diff)} (Disetor ke Kasir)`
+        : diff < 0 
+        ? `Kurang Bayar: ${formatRp(Math.abs(diff))} (Klaim Reimburse)` 
+        : `Sisa Saldo: Nihil (Rp 0,00)`;
+
+      const compTitle = (appData.companyName || "PT DPG STOREID").toUpperCase();
+      const text = `*RINGKASAN CASH ADVANCE DINAS - ${compTitle}*
+Pelaksana: ${appData.employeeName} (${appData.employeeRoleDept})
+Tujuan: ${appData.destCity}
+No. CA: ${appData.docNumber}
+Periode: ${formatDateIndo(appData.startDate)} s/d ${formatDateIndo(appData.endDate)}
+Agenda: ${appData.tripPurpose}
+
+*Rincian Finansial:*
+• Total Kas Diterima (A): ${formatRp(totalIn)}
+• Total Realisasi (B): ${formatRp(totalOut)}
+----------------------------------
+*${statusText}*
+
+_Laporan lembar cetak A4 dan fisik nota terlampir._`;
+
+      navigator.clipboard.writeText(text).then(() => {
+        alert("Ringkasan laporan berhasil disalin! Silakan paste langsung ke WhatsApp.");
+      }).catch(() => {
+        prompt("Salin teks di bawah:", text);
+      });
+    }
+
+    // Dropdown Data / Backup
+    document.addEventListener("click", function(e) {
+      const btn = document.getElementById("btnShareMenu");
+      const dropdown = document.getElementById("shareDropdown");
+      if (!btn || !dropdown) return;
+      if (btn.contains(e.target)) {
+        dropdown.classList.toggle("hidden");
+      } else if (!dropdown.contains(e.target)) {
+        dropdown.classList.add("hidden");
+      }
+    });
+
+    function exportDataJson() {
+      const jsonStr = JSON.stringify(appData, null, 2);
+      const blob = new Blob([jsonStr], { type: "application/json" });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      const safeName = (appData.employeeName || "Karyawan").replace(/[^a-zA-Z0-9]/g, "_");
+      a.href = url;
+      a.download = `Laporan_CA_${safeName}.json`;
+      a.click();
+      URL.revokeObjectURL(url);
+      document.getElementById("shareDropdown")?.classList.add("hidden");
+    }
+
+    function importDataJson(event) {
+      const file = event.target.files[0];
+      if (!file) return;
+      const reader = new FileReader();
+      reader.onload = function(e) {
+        try {
+          const parsed = JSON.parse(e.target.result);
+          if (parsed && typeof parsed === "object") {
+            appData = parsed;
+            syncInputsFromData();
+            renderForms();
+            renderView();
+            document.getElementById("shareDropdown")?.classList.add("hidden");
+          }
+        } catch (err) {
+          alert("Gagal membaca file JSON.");
+        }
+      };
+      reader.readAsText(file);
+    }
+
+    function copyShareableLink() {
+      try {
+        const jsonStr = JSON.stringify(appData);
+        const encoded = encodeURIComponent(btoa(unescape(encodeURIComponent(jsonStr))));
+        const shareUrl = window.location.origin + window.location.pathname + "#data=" + encoded;
+        
+        const dummy = document.createElement("input");
+        document.body.appendChild(dummy);
+        dummy.value = shareUrl;
+        dummy.select();
+        document.execCommand("copy");
+        document.body.removeChild(dummy);
+
+        alert("Link berisi seluruh data berhasil disalin! Teman Anda bisa langsung membukanya.");
+        document.getElementById("shareDropdown")?.classList.add("hidden");
+      } catch (err) {
+        alert("Gagal membuat link.");
+      }
+    }
+
+    function syncInputsFromData() {
+      document.getElementById("companyName").value = appData.companyName || "PT DPG STOREID";
+      document.getElementById("employeeName").value = appData.employeeName || "";
+      document.getElementById("employeeRoleDept").value = appData.employeeRoleDept || "";
+      document.getElementById("destCity").value = appData.destCity || "";
+      document.getElementById("docNumber").value = appData.docNumber || "";
+      document.getElementById("startDate").value = appData.startDate || "";
+      document.getElementById("endDate").value = appData.endDate || "";
+      document.getElementById("tripPurpose").value = appData.tripPurpose || "";
+    }
+
+    // Inisialisasi
+    window.onload = function() {
+      if (window.location.hash.startsWith("#data=")) {
+        try {
+          const rawB64 = decodeURIComponent(window.location.hash.replace("#data=", ""));
+          const decoded = decodeURIComponent(escape(atob(rawB64)));
+          const imported = JSON.parse(decoded);
+          if (imported && typeof imported === "object") {
+            appData = imported;
+          }
+        } catch (e) {}
+      } else {
+        const saved = localStorage.getItem("sal_ca_data_final_v1");
+        if (saved) {
+          try { appData = JSON.parse(saved); } catch (e) {}
+        }
+      }
+
+      syncInputsFromData();
+      renderForms();
+      renderView();
+    };
+  </script>
+</body>
+</html>
