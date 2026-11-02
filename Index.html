@@ -511,7 +511,7 @@
       saveAndRender();
     }
 
-    // Tombol Contoh Data (Data Dandy dipindahkan ke sini)
+    // Tombol Contoh Data
     function populateExampleData() {
       appData = {
         companyName: "PT DPG STOREID",
@@ -801,7 +801,7 @@
       const wsInc = XLSX.utils.json_to_sheet(incRows);
       XLSX.utils.book_append_sheet(wb, wsInc, "Uang_Masuk_CA");
 
-      XLSX.writeFile(wb, `Laporan_CA_${appData.employeeName.replace(/\s+/g, '_')}.xlsx`);
+      XLSX.writeFile(wb, `Laporan_CA_${(appData.employeeName || "Karyawan").replace(/\s+/g, '_')}.xlsx`);
     }
 
     // Salin Teks Ringkasan WhatsApp
